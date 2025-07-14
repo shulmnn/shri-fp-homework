@@ -14,38 +14,73 @@
  * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
  * Ответ будет приходить в поле {result}
  */
- import Api from '../tools/api';
+import Api from '../tools/api';
 
- const api = new Api();
+const api = new Api();
 
- /**
-  * Я – пример, удали меня
-  */
- const wait = time => new Promise(resolve => {
-     setTimeout(resolve, time);
- })
+const processSequence = ({ value, writeLog, handleSuccess, handleError }) => {
+  writeLog(value);
 
- const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-     /**
-      * Я – пример, удали меня
-      */
-     writeLog(value);
+  const validateInput = (inputValue) => {
+    if (inputValue.length < 3 || inputValue.length > 9) {
+      return Promise.reject('ValidationError');
+    }
 
-     api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-         writeLog(result);
-     });
+    const numberRegex = /^[0-9]+\.?[0-9]*$/;
+    if (!numberRegex.test(inputValue)) {
+      return Promise.reject('ValidationError');
+    }
 
-     wait(2500).then(() => {
-         writeLog('SecondLog')
+    const number = parseFloat(inputValue);
+    if (number <= 0) {
+      return Promise.reject('ValidationError');
+    }
 
-         return wait(1500);
-     }).then(() => {
-         writeLog('ThirdLog');
+    return Promise.resolve(inputValue);
+  };
 
-         return wait(400);
-     }).then(() => {
-         handleSuccess('Done');
-     });
- }
+  validateInput(value)
+    .then((inputValue) => {
+      const number = parseFloat(inputValue);
+      const rounded = Math.round(number);
+      writeLog(rounded);
+      return rounded;
+    })
+    .then((number) => {
+      return api.get('https://api.tech/numbers/base', {
+        number: number.toString(),
+        from: 10,
+        to: 2,
+      });
+    })
+    .then(({ result }) => {
+      writeLog(result);
+      return result;
+    })
+    .then((binaryString) => {
+      const length = binaryString.length;
+      writeLog(length);
+      return length;
+    })
+    .then((length) => {
+      const squared = length * length;
+      writeLog(squared);
+      return squared;
+    })
+    .then((squared) => {
+      const remainder = squared % 3;
+      writeLog(remainder);
+      return remainder;
+    })
+    .then((remainder) => {
+      return api.get(`https://animals.tech/${remainder}`, {});
+    })
+    .then(({ result }) => {
+      handleSuccess(result);
+    })
+    .catch((error) => {
+      handleError(error);
+    });
+};
 
 export default processSequence;
